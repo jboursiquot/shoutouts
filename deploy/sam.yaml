@@ -1,0 +1,243 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Shoutouts Slack Slash Command
+
+Parameters:
+  slackToken:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: '/shoutouts/slack-token'
+  metricNamespace:
+    Type: "String"
+    Default: "Shoutouts"
+
+Globals:
+  Api:
+    Name: shoutouts-agw
+
+Resources:
+  ShoutoutsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: Shoutouts
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - 
+          AttributeName: ID
+          AttributeType: S
+        -
+          AttributeName: Timestamp
+          AttributeType: S
+        -
+          AttributeName: UserID
+          AttributeType: S
+      KeySchema:
+        - 
+          AttributeName: ID
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - 
+          IndexName: UserIDIndex
+          KeySchema: 
+            - 
+              AttributeName: UserID
+              KeyType: HASH
+            - 
+              AttributeName: Timestamp
+              KeyType: RANGE
+          Projection: 
+            ProjectionType: ALL
+
+  ShoutoutsQueue:
+    Type: AWS::SQS::Queue
+
+  ShoutoutsQueueUrlParameter:
+    Type: "AWS::SSM::Parameter"
+    DependsOn: ShoutoutsQueue
+    Properties:
+      Name: "/shoutouts/queue-url"
+      Type: "String"
+      Value: !Ref ShoutoutsQueue
+      Description: "Shoutouts Queue URL"
+
+  ShoutoutsRole:
+    Type: AWS::IAM::Role
+    Description: Lambda execution role for all lambda functions.
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: [lambda.amazonaws.com]
+          Action: ['sts:AssumeRole']
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AWSLambdaExecute
+        - arn:aws:iam::aws:policy/AWSXrayWriteOnlyAccess
+        - arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaRole
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaSQSQueueExecutionRole
+      Policies:
+      - PolicyName: shoutouts-policy
+        PolicyDocument:
+          Statement:
+            - Effect: "Allow"
+              Action: 
+                - "states:StartExecution"
+                - "cloudwatch:PutMetricData"
+              Resource: "*"
+            - Effect: "Allow"
+              Action:
+                - "sqs:DeleteMessage"
+                - "sqs:DeleteMessageBatch"
+                - "sqs:SendMessageBatch"
+                - "sqs:SendMessage"
+              Resource: !GetAtt ShoutoutsQueue.Arn
+            - Effect: "Allow"
+              Action:
+                - "dynamodb:Query"
+                - "dynamodb:Scan"
+                - "dynamodb:BatchGetItem"
+                - "dynamodb:BatchWriteItem"
+                - "dynamodb:GetItem"
+                - "dynamodb:PutItem"
+                - "dynamodb:UpdateItem"
+              Resource:
+                - !GetAtt ShoutoutsTable.Arn
+                - !Join [ "/", [!GetAtt ShoutoutsTable.Arn, "index", "*" ]]
+
+  ShoutoutHandlerFunction:
+    Type: AWS::Serverless::Function
+    DependsOn: [ShoutoutsQueueUrlParameter, ShoutoutsRole]
+    Properties:
+      Role: !GetAtt ShoutoutsRole.Arn
+      CodeUri: ../build/handler.zip
+      Handler: handler
+      Runtime: go1.x
+      Tracing: Active
+      MemorySize: 128
+      Events:
+        SlashCommand:
+          Type: Api
+          Properties:
+            Path: /shoutout
+            Method: POST
+      Environment:
+        Variables:
+          SLACK_TOKEN: !Ref slackToken
+          QUEUE_URL: !GetAtt ShoutoutsQueueUrlParameter.Value
+
+  ShoutoutProcessorFunction:
+    Type: AWS::Serverless::Function
+    DependsOn: ShoutoutsRole
+    Properties:
+      Role: !GetAtt ShoutoutsRole.Arn
+      CodeUri: ../build/processor.zip
+      Handler: processor
+      Runtime: go1.x
+      Tracing: Active
+      MemorySize: 128
+      Events:
+        SQSEvent:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt ShoutoutsQueue.Arn
+            BatchSize: 10
+      Environment:
+        Variables:
+          STATE_MACHINE_ARN: !Ref ShoutoutsStateMachine
+
+  ShoutoutSaverFunction:
+    Type: AWS::Serverless::Function
+    DependsOn: ShoutoutsRole
+    Properties:
+      Role: !GetAtt ShoutoutsRole.Arn
+      CodeUri: ../build/saver.zip
+      Handler: saver
+      Runtime: go1.x
+      Tracing: Active
+      MemorySize: 128
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref ShoutoutsTable
+
+  ShoutoutMetricsFunction:
+    Type: AWS::Serverless::Function
+    DependsOn: ShoutoutsRole
+    Properties:
+      Role: !GetAtt ShoutoutsRole.Arn
+      CodeUri: ../build/metrics.zip
+      Handler: metrics
+      Runtime: go1.x
+      Tracing: Active
+      MemorySize: 128
+      Environment:
+        Variables:
+          METRIC_NAMESPACE: !Ref metricNamespace
+
+  ShoutoutCallback:
+    Type: AWS::Serverless::Function
+    DependsOn: ShoutoutsRole
+    Properties:
+      Role: !GetAtt ShoutoutsRole.Arn
+      CodeUri: ../build/callback.zip
+      Handler: callback
+      Runtime: go1.x
+      Tracing: Active
+      MemorySize: 128
+
+  ShoutoutsStateMachine:
+    Type: AWS::StepFunctions::StateMachine
+    Properties:
+      StateMachineName: shoutouts-processor
+      DefinitionString: !Sub
+        |-
+        {
+          "Comment": "Processes an incoming payload from the Shoutouts Slack Slash command.",
+          "StartAt": "save",
+          "Version": "1.0",
+          "TimeoutSeconds": 90,
+          "States":
+          {
+            "save": {
+              "Type": "Task",
+              "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${ShoutoutSaverFunction}",
+              "TimeoutSeconds": 30,
+              "Next": "metrics"
+            },
+            "metrics": {
+              "Type": "Task",
+              "TimeoutSeconds": 30,
+              "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${ShoutoutMetricsFunction}",
+              "Next": "callback"
+            },
+            "callback": {
+              "Type": "Task",
+              "TimeoutSeconds": 30,
+              "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${ShoutoutCallback}",
+              "End": true
+            }
+          }
+        }
+      RoleArn: !GetAtt ShoutoutsStateMachineRole.Arn
+
+  ShoutoutsStateMachineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: [states.us-east-1.amazonaws.com]
+          Action: ['sts:AssumeRole']
+      Policies:
+      - PolicyName: shoutouts-statemachine-policy
+        PolicyDocument:
+          Statement:
+          - Effect: Allow
+            Action: ['lambda:InvokeFunction']
+            Resource: '*' 
+
+Outputs:
+  ShoutoutsAPIEndpoint:
+    Description: "API Gateway endpoint URL for Shoutouts service"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/shoutout/"

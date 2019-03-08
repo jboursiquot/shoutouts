@@ -1,0 +1,19 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Shoutouts configuration parameters
+
+Parameters:
+  slackToken:
+    Type: String
+    Description: "Token obtained from Slack for the Shoutouts app. It's recommended you do not commit the actual value in your repository."
+    Default: OverrideMe
+
+Resources:
+
+  SlackTokenUrlParameter:
+    Type: "AWS::SSM::Parameter"
+    Properties:
+      Name: "/shoutouts/slack-token"
+      Type: "String"
+      Value: !Ref slackToken
+      Description: "Token obtained from Slack for the Shoutouts app"
