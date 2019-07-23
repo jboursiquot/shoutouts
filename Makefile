@@ -16,8 +16,8 @@ clean:
 	-rm deploy/package.yaml
 
 test:
-	go test -v ./...
-	#sam local invoke -e testdata/events/apigateway-shoutout.json -t template.yaml ShoutoutHandlerFunction
+	go test -race -v ./...
+	# sam local invoke -e testdata/events/apigateway-shoutout.json -t deploy/sam.yaml ShoutoutHandlerFunction
 
 params:
 	aws cloudformation deploy \
@@ -25,7 +25,12 @@ params:
 		--template-file ./deploy/params.yaml \
 		--parameter-overrides \
 			slackToken=$(SLACK_TOKEN) \
+			metricNamespace=$(METRIC_NAMESPACE) \
 		--output json
+
+deleteParams:
+	aws cloudformation delete-stack \
+		--stack-name $(STACK_NAME)-params
 
 bucket:
 	aws s3 mb s3://$(BUCKET)

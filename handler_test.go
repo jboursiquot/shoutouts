@@ -15,7 +15,7 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 
-	"github.com/jboursiquot/shoutouts/pkg/shoutouts"
+	"github.com/jboursiquot/shoutouts"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -24,6 +24,7 @@ func TestHandler(t *testing.T) {
 		scenario string
 		request  *events.APIGatewayProxyRequest
 		sqs      *mockSQS
+		ddb      *mockDynamoDB
 	}{
 		{
 			scenario: "unspecified command",
@@ -32,6 +33,7 @@ func TestHandler(t *testing.T) {
 				HTTPMethod: http.MethodPost,
 			},
 			sqs: &mockSQS{},
+			ddb: &mockDynamoDB{},
 		},
 		{
 			scenario: "unknown command",
@@ -40,6 +42,7 @@ func TestHandler(t *testing.T) {
 				HTTPMethod: http.MethodPost,
 			},
 			sqs: &mockSQS{},
+			ddb: &mockDynamoDB{},
 		},
 		{
 			scenario: "help command",
@@ -48,6 +51,17 @@ func TestHandler(t *testing.T) {
 				HTTPMethod: http.MethodPost,
 			},
 			sqs: &mockSQS{},
+			ddb: &mockDynamoDB{},
+		},
+		{
+			scenario: "help command (get)",
+			request: &events.APIGatewayProxyRequest{
+				Body:                  baseCommandParams("help").Encode(),
+				QueryStringParameters: map[string]string{"token": os.Getenv("SLACK_TOKEN")},
+				HTTPMethod:            http.MethodGet,
+			},
+			sqs: &mockSQS{},
+			ddb: &mockDynamoDB{},
 		},
 		{
 			scenario: "help usage command",
@@ -56,6 +70,7 @@ func TestHandler(t *testing.T) {
 				HTTPMethod: http.MethodPost,
 			},
 			sqs: &mockSQS{},
+			ddb: &mockDynamoDB{},
 		},
 		{
 			scenario: "help values command",
@@ -64,6 +79,7 @@ func TestHandler(t *testing.T) {
 				HTTPMethod: http.MethodPost,
 			},
 			sqs: &mockSQS{},
+			ddb: &mockDynamoDB{},
 		},
 		{
 			scenario: "shoutout command",
@@ -72,20 +88,22 @@ func TestHandler(t *testing.T) {
 				HTTPMethod: http.MethodPost,
 			},
 			sqs: &mockSQS{},
+			ddb: &mockDynamoDB{},
 		},
 		{
 			scenario: "shoutout command with sqs error",
 			request: &events.APIGatewayProxyRequest{
-				Body:       baseCommandParams("<@userid|johnny> tf all for the team").Encode(),
+				Body:       baseCommandParams("<@userid|johnny_boursiquot> tf all for the team").Encode(),
 				HTTPMethod: http.MethodPost,
 			},
 			sqs: &mockSQS{err: errors.New("sqs api call failure")},
+			ddb: &mockDynamoDB{},
 		},
 	}
 
 	for _, c := range cases {
 		t.Run(c.scenario, func(t *testing.T) {
-			h := shoutouts.NewHandler(c.sqs)
+			h := shoutouts.NewHandler(c.sqs, c.ddb)
 			r, err := h.Handle(context.Background(), c.request)
 			assert.NoError(t, err)
 			if c.sqs.err == nil {

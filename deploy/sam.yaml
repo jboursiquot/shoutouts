@@ -2,14 +2,6 @@ AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: Shoutouts Slack Slash Command
 
-Parameters:
-  slackToken:
-    Type: AWS::SSM::Parameter::Value<String>
-    Default: '/shoutouts/slack-token'
-  metricNamespace:
-    Type: "String"
-    Default: "Shoutouts"
-
 Globals:
   Api:
     Name: shoutouts-agw
@@ -25,10 +17,7 @@ Resources:
           AttributeName: ID
           AttributeType: S
         -
-          AttributeName: Timestamp
-          AttributeType: S
-        -
-          AttributeName: UserID
+          AttributeName: RecipientID
           AttributeType: S
       KeySchema:
         - 
@@ -36,14 +25,11 @@ Resources:
           KeyType: HASH
       GlobalSecondaryIndexes:
         - 
-          IndexName: UserIDIndex
+          IndexName: RecipientIDIndex
           KeySchema: 
             - 
-              AttributeName: UserID
+              AttributeName: RecipientID
               KeyType: HASH
-            - 
-              AttributeName: Timestamp
-              KeyType: RANGE
           Projection: 
             ProjectionType: ALL
 
@@ -123,8 +109,9 @@ Resources:
             Method: POST
       Environment:
         Variables:
-          SLACK_TOKEN: !Ref slackToken
+          SLACK_TOKEN: '{{resolve:secretsmanager:SlackToken}}'
           QUEUE_URL: !GetAtt ShoutoutsQueueUrlParameter.Value
+          TABLE_NAME: !Ref ShoutoutsTable
 
   ShoutoutProcessorFunction:
     Type: AWS::Serverless::Function
@@ -172,7 +159,7 @@ Resources:
       MemorySize: 128
       Environment:
         Variables:
-          METRIC_NAMESPACE: !Ref metricNamespace
+          METRIC_NAMESPACE: '{{resolve:ssm:"/shoutouts/metric-namespace":1}'
 
   ShoutoutCallback:
     Type: AWS::Serverless::Function
@@ -188,6 +175,7 @@ Resources:
   ShoutoutsStateMachine:
     Type: AWS::StepFunctions::StateMachine
     Properties:
+      RoleArn: !GetAtt ShoutoutsStateMachineRole.Arn
       StateMachineName: shoutouts-processor
       DefinitionString: !Sub
         |-
@@ -218,7 +206,6 @@ Resources:
             }
           }
         }
-      RoleArn: !GetAtt ShoutoutsStateMachineRole.Arn
 
   ShoutoutsStateMachineRole:
     Type: AWS::IAM::Role

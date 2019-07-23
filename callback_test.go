@@ -8,7 +8,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/jboursiquot/shoutouts/pkg/shoutouts"
+	"github.com/jboursiquot/shoutouts"
 )
 
 func TestCallback(t *testing.T) {

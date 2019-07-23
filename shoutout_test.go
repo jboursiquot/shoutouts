@@ -3,7 +3,7 @@ package shoutouts_test
 import (
 	"testing"
 
-	"github.com/jboursiquot/shoutouts/pkg/shoutouts"
+	"github.com/jboursiquot/shoutouts"
 	"github.com/stretchr/testify/assert"
 )
 

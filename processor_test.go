@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/jboursiquot/shoutouts/pkg/shoutouts"
+	"github.com/jboursiquot/shoutouts"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/aws/aws-lambda-go/events"

@@ -5,15 +5,26 @@ Description: Shoutouts configuration parameters
 Parameters:
   slackToken:
     Type: String
-    Description: "Token obtained from Slack for the Shoutouts app. It's recommended you do not commit the actual value in your repository."
+    Description: "Slack app token"
+    Default: OverrideMe
+  metricNamespace:
+    Type: String
+    Description: "CloudWatch Metrics Namespace"
     Default: OverrideMe
 
 Resources:
 
-  SlackTokenUrlParameter:
+  MetricNamespace:
     Type: "AWS::SSM::Parameter"
     Properties:
-      Name: "/shoutouts/slack-token"
+      Name: "/shoutouts/metric-namespace"
       Type: "String"
-      Value: !Ref slackToken
-      Description: "Token obtained from Slack for the Shoutouts app"
+      Value: !Ref metricNamespace
+      Description: "CloudWatch Metrics Namespace"
+
+  SlackToken:
+    Type: 'AWS::SecretsManager::Secret'
+    Properties:
+      Name: SlackToken
+      Description: "Slack app token"
+      SecretString: !Ref slackToken

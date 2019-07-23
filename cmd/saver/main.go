@@ -7,7 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-xray-sdk-go/xray"
-	"github.com/jboursiquot/shoutouts/pkg/shoutouts"
+	"github.com/jboursiquot/shoutouts"
 )
 
 var sess *session.Session
@@ -19,7 +19,7 @@ func init() {
 }
 
 func handler(ctx context.Context, shoutout *shoutouts.Shoutout) (*shoutouts.Shoutout, error) {
-	err := shoutouts.NewDynamoDBSaver(ddb).Save(ctx, shoutout)
+	err := shoutouts.NewSaver(ddb).Save(ctx, shoutout)
 	if err != nil {
 		xray.AddError(ctx, err)
 	}

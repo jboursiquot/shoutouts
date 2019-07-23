@@ -11,7 +11,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
-	"github.com/jboursiquot/shoutouts/pkg/shoutouts"
+	"github.com/jboursiquot/shoutouts"
 )
 
 func TestSaver(t *testing.T) {
@@ -24,23 +24,31 @@ func TestSaver(t *testing.T) {
 			scenario: "api error",
 			shoutout: shoutouts.New(),
 			ddb: &mockDynamoDB{
-				nil,
-				errors.New("api error"),
+				putOut: nil,
+				err:    errors.New("api error"),
 			},
 		},
 		{
-			scenario: "happy path",
+			scenario: "successful put",
 			shoutout: shoutouts.New(),
 			ddb: &mockDynamoDB{
-				&dynamodb.PutItemOutput{},
-				nil,
+				putOut: &dynamodb.PutItemOutput{},
+				err:    nil,
+			},
+		},
+		{
+			scenario: "successful query",
+			shoutout: shoutouts.New(),
+			ddb: &mockDynamoDB{
+				queryOut: &dynamodb.QueryOutput{},
+				err:      nil,
 			},
 		},
 	}
 
 	for _, c := range cases {
 		t.Run(c.scenario, func(t *testing.T) {
-			s := shoutouts.NewDynamoDBSaver(c.ddb)
+			s := shoutouts.NewSaver(c.ddb)
 
 			if c.ddb.err != nil {
 				assert.Error(t, s.Save(context.Background(), c.shoutout))
@@ -54,10 +62,15 @@ func TestSaver(t *testing.T) {
 }
 
 type mockDynamoDB struct {
-	out *dynamodb.PutItemOutput
-	err error
+	putOut   *dynamodb.PutItemOutput
+	queryOut *dynamodb.QueryOutput
+	err      error
 }
 
 func (m *mockDynamoDB) PutItemWithContext(ctx aws.Context, item *dynamodb.PutItemInput, opts ...request.Option) (*dynamodb.PutItemOutput, error) {
-	return m.out, m.err
+	return m.putOut, m.err
+}
+
+func (m *mockDynamoDB) QueryWithContext(aws.Context, *dynamodb.QueryInput, ...request.Option) (*dynamodb.QueryOutput, error) {
+	return m.queryOut, m.err
 }

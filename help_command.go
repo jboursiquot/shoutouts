@@ -57,6 +57,10 @@ func (c *helpCommand) execute(ctx context.Context) (*SlackResponse, error) {
 					Title: "Give a shoutout",
 					Text:  "`/shoutout <@username> <core-value-abbrev> <comment>`",
 				},
+				&SlackAttachment{
+					Title: "List shoutouts for a user",
+					Text:  "`/shoutout list <@username>`",
+				},
 			},
 		}
 	case helpKindValues:

@@ -13,23 +13,23 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 )
 
-// DynamoDBAPI is the minimal interface needed to store a shoutout.
-type DynamoDBAPI interface {
+// DynamoDBPuter is the minimal interface needed to store a shoutout.
+type DynamoDBPuter interface {
 	PutItemWithContext(aws.Context, *dynamodb.PutItemInput, ...request.Option) (*dynamodb.PutItemOutput, error)
 }
 
-// NewDynamoDBSaver returns a new saver.
-func NewDynamoDBSaver(c DynamoDBAPI) *DynamoDBSaver {
-	return &DynamoDBSaver{ddb: c}
+// NewSaver returns a new saver.
+func NewSaver(c DynamoDBPuter) *Saver {
+	return &Saver{ddb: c}
 }
 
-// DynamoDBSaver is a shoutout saver.
-type DynamoDBSaver struct {
-	ddb DynamoDBAPI
+// Saver is a shoutout saver.
+type Saver struct {
+	ddb DynamoDBPuter
 }
 
 // Save saves a Shoutout
-func (s *DynamoDBSaver) Save(ctx context.Context, shoutout *Shoutout) error {
+func (s *Saver) Save(ctx context.Context, shoutout *Shoutout) error {
 	item, err := dynamodbattribute.MarshalMap(shoutout)
 	if err != nil {
 		return fmt.Errorf("failed to marshal shoutout for storage: %s", err)
