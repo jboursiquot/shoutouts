@@ -40,7 +40,7 @@ type shoutoutCommand struct {
 // 	response_url=https://hooks.slack.com/commands/1234/5678
 func parseShoutoutCommand(ctx context.Context, params *url.Values) (*shoutoutCommand, error) {
 	log.Printf("%#v", params)
-	cmdRe := regexp.MustCompile("(<@[a-zA-Z0-9_|]*>)(\\s{1})(it|IT|rf|RF|tf|TF){1}(\\s{1})(.*)")
+	cmdRe := regexp.MustCompile("(<@[a-zA-Z0-9_|\\.]*>)(\\s{1})(it|IT|rf|RF|tf|TF){1}(\\s{1})(.*)")
 	cmdSubmatches := cmdRe.FindAllStringSubmatch(params.Get("text"), -1)
 	if cmdSubmatches == nil {
 		return nil, errors.New("not a shoutout command")
