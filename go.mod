@@ -1,5 +1,7 @@
 module github.com/jboursiquot/shoutouts
 
+go 1.14
+
 require (
 	github.com/DATA-DOG/go-sqlmock v1.3.3 // indirect
 	github.com/VividCortex/gohistogram v1.0.0 // indirect
