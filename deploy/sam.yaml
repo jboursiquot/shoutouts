@@ -2,15 +2,21 @@ AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: Shoutouts Slack Slash Command
 
+Parameters:
+  paramsStackName:
+    Type: String
+    Description: "Stack name where SSM/SecretsManager params are defined"
+    Default: shoutouts-params
+
 Globals:
   Api:
-    Name: shoutouts-agw
+    Name: !Sub ${AWS::StackName}-agw
 
 Resources:
   ShoutoutsTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: Shoutouts
+      TableName: !Sub ${AWS::StackName}-shoutouts
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
         - 
@@ -40,7 +46,7 @@ Resources:
     Type: "AWS::SSM::Parameter"
     DependsOn: ShoutoutsQueue
     Properties:
-      Name: "/shoutouts/queue-url"
+      Name: !Sub "/${AWS::StackName}/queue-url"
       Type: "String"
       Value: !Ref ShoutoutsQueue
       Description: "Shoutouts Queue URL"
@@ -63,7 +69,7 @@ Resources:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaRole
         - arn:aws:iam::aws:policy/service-role/AWSLambdaSQSQueueExecutionRole
       Policies:
-      - PolicyName: shoutouts-policy
+      - PolicyName: !Sub ${AWS::StackName}-policy
         PolicyDocument:
           Statement:
             - Effect: "Allow"
@@ -109,7 +115,9 @@ Resources:
             Method: POST
       Environment:
         Variables:
-          SLACK_TOKEN: '{{resolve:secretsmanager:SlackToken}}'
+          SLACK_TOKEN: !Sub 
+            - '{{resolve:secretsmanager:/${paramsStackName}/slack-token}}'
+            - {paramsStackName: !Ref paramsStackName}
           QUEUE_URL: !GetAtt ShoutoutsQueueUrlParameter.Value
           TABLE_NAME: !Ref ShoutoutsTable
 
@@ -159,7 +167,7 @@ Resources:
       MemorySize: 128
       Environment:
         Variables:
-          METRIC_NAMESPACE: '{{resolve:ssm:"/shoutouts/metric-namespace":1}'
+          METRIC_NAMESPACE: !Sub '{{resolve:ssm:"/${AWS::StackName}/metric-namespace":1}'
 
   ShoutoutCallback:
     Type: AWS::Serverless::Function
@@ -176,7 +184,7 @@ Resources:
     Type: AWS::StepFunctions::StateMachine
     Properties:
       RoleArn: !GetAtt ShoutoutsStateMachineRole.Arn
-      StateMachineName: shoutouts-processor
+      StateMachineName: !Sub ${AWS::StackName}-processor
       DefinitionString: !Sub
         |-
         {
@@ -217,7 +225,7 @@ Resources:
             Service: [states.us-east-1.amazonaws.com]
           Action: ['sts:AssumeRole']
       Policies:
-      - PolicyName: shoutouts-statemachine-policy
+      - PolicyName: !Sub ${AWS::StackName}-statemachine-policy
         PolicyDocument:
           Statement:
           - Effect: Allow

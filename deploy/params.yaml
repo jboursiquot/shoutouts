@@ -17,7 +17,7 @@ Resources:
   MetricNamespace:
     Type: "AWS::SSM::Parameter"
     Properties:
-      Name: "/shoutouts/metric-namespace"
+      Name: !Sub "/${AWS::StackName}/metric-namespace"
       Type: "String"
       Value: !Ref metricNamespace
       Description: "CloudWatch Metrics Namespace"
@@ -25,6 +25,6 @@ Resources:
   SlackToken:
     Type: 'AWS::SecretsManager::Secret'
     Properties:
-      Name: SlackToken
+      Name: !Sub "/${AWS::StackName}/slack-token"
       Description: "Slack app token"
       SecretString: !Ref slackToken
