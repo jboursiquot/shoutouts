@@ -1,11 +1,11 @@
 PROJECT = $(shell basename $(CURDIR))
-REVISION ?= $(shell git rev-parse --short HEAD)
-BRANCH ?= $(shell git branch --no-color |sort |tail -1 |cut -c 3-)
+STACK_NAME ?= $(PROJECT)
+STACK_NAME_PARAMS ?= $(STACK_NAME)-params
+BUCKET ?= $(STACK_NAME)
+METRIC_NAMESPACE ?= $(STACK_NAME)
+SLACK_TOKEN ?= ChangeMe
 CF_TEMPLATE ?= deploy/sam.yaml
 PACKAGE_TEMPLATE = deploy/package.yaml
-BUCKET ?= unspecified
-STACK_NAME ?= $(PROJECT)
-SLACK_TOKEN ?= ChangeMe
 
 .PHONY: clean test build package deploy slack
 
@@ -21,16 +21,12 @@ test:
 
 params:
 	aws cloudformation deploy \
-		--stack-name $(STACK_NAME)-params \
+		--stack-name $(STACK_NAME_PARAMS) \
 		--template-file ./deploy/params.yaml \
 		--parameter-overrides \
 			slackToken=$(SLACK_TOKEN) \
 			metricNamespace=$(METRIC_NAMESPACE) \
 		--output json
-
-deleteParams:
-	aws cloudformation delete-stack \
-		--stack-name $(STACK_NAME)-params
 
 bucket:
 	aws s3 mb s3://$(BUCKET)
@@ -61,18 +57,22 @@ deploy: clean package
 	sam deploy \
 		--template-file $(PACKAGE_TEMPLATE) \
 		--stack-name $(STACK_NAME) \
+		--parameter-overrides \
+			paramsStackName=$(STACK_NAME_PARAMS) \
 		--capabilities CAPABILITY_IAM \
 		--no-fail-on-empty-changeset
 
 destroy:
 	aws cloudformation delete-stack \
 		--stack-name $(STACK_NAME)
+	aws cloudformation delete-stack \
+		--stack-name $(STACK_NAME_PARAMS)
+	aws s3 rb s3://$(BUCKET) --force  
 
 outputs:
 	aws cloudformation describe-stacks \
 		--stack-name $(STACK_NAME) \
-		--query 'Stacks[].Outputs' \
-		--output json
+		--query 'Stacks[].Outputs'
 
 describe:
 	aws cloudformation describe-stacks \
