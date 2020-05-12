@@ -45,19 +45,19 @@ func (c *helpCommand) execute(ctx context.Context) (*SlackResponse, error) {
 			ResponseType: SlackResponseTypeEphemeral,
 			Text:         "This command allows you to give shoutouts to your teammates for exemplifying the core values of the organization.",
 			Attachments: []*SlackAttachment{
-				&SlackAttachment{
+				{
 					Title: "Get help",
 					Text:  "`/shoutout help`",
 				},
-				&SlackAttachment{
+				{
 					Title: "Show Core Values",
 					Text:  "`/shoutout help values`",
 				},
-				&SlackAttachment{
+				{
 					Title: "Give a shoutout",
 					Text:  "`/shoutout <@username> <core-value-abbrev> <comment>`",
 				},
-				&SlackAttachment{
+				{
 					Title: "List shoutouts for a user",
 					Text:  "`/shoutout list <@username>`",
 				},
@@ -67,9 +67,9 @@ func (c *helpCommand) execute(ctx context.Context) (*SlackResponse, error) {
 		r = SlackResponse{
 			ResponseType: SlackResponseTypeEphemeral,
 			Attachments: []*SlackAttachment{
-				&SlackAttachment{Title: "Innovative Thinking | IT", Text: descIT, ThumbURL: thumbIT},
-				&SlackAttachment{Title: "Results Focus | RF", Text: descRF, ThumbURL: thumbRF},
-				&SlackAttachment{Title: "Team First | TF", Text: descTF, ThumbURL: thumbTF},
+				{Title: "Innovative Thinking | IT", Text: descIT, ThumbURL: thumbIT},
+				{Title: "Results Focus | RF", Text: descRF, ThumbURL: thumbRF},
+				{Title: "Team First | TF", Text: descTF, ThumbURL: thumbTF},
 			},
 		}
 	}

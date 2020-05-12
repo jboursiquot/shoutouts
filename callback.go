@@ -22,7 +22,7 @@ func (c *Callback) Call(ctx context.Context, shoutout *Shoutout) error {
 	r := SlackResponse{
 		ResponseType: SlackResponseTypeInChannel,
 		Attachments: []*SlackAttachment{
-			&SlackAttachment{
+			{
 				Title: fmt.Sprintf(
 					"%s shoutout to @%s from @%s for",
 					shoutout.Kind.Name,

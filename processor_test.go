@@ -68,11 +68,11 @@ func (m *mockSFN) StartExecutionWithContext(ctx aws.Context, input *sfn.StartExe
 func sampleSQSEvent() *events.SQSEvent {
 	e := &events.SQSEvent{
 		Records: []events.SQSMessage{
-			events.SQSMessage{
+			{
 				MessageId: "",
 				Body:      "",
 			},
-			events.SQSMessage{
+			{
 				MessageId: "",
 				Body:      "",
 			},
