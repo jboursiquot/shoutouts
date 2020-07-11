@@ -167,7 +167,7 @@ Resources:
       MemorySize: 128
       Environment:
         Variables:
-          METRIC_NAMESPACE: !Sub '{{resolve:ssm:"/${AWS::StackName}/metric-namespace":1}'
+          METRIC_NAMESPACE: !Sub '{{resolve:ssm:/${paramsStackName}/metric-namespace:1}}'
 
   ShoutoutCallback:
     Type: AWS::Serverless::Function
