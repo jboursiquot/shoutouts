@@ -185,6 +185,8 @@ Resources:
     Properties:
       RoleArn: !GetAtt ShoutoutsStateMachineRole.Arn
       StateMachineName: !Sub ${AWS::StackName}-processor
+      TracingConfiguration:
+        Enabled: true
       DefinitionString: !Sub
         |-
         {
@@ -231,6 +233,8 @@ Resources:
           - Effect: Allow
             Action: ['lambda:InvokeFunction']
             Resource: '*' 
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AWSXrayWriteOnlyAccess
 
 Outputs:
   ShoutoutsAPIEndpoint:
