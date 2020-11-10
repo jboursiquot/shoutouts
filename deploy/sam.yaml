@@ -224,7 +224,7 @@ Resources:
         Statement:
         - Effect: Allow
           Principal:
-            Service: [states.us-east-1.amazonaws.com]
+            Service: [states.amazonaws.com]
           Action: ['sts:AssumeRole']
       Policies:
       - PolicyName: !Sub ${AWS::StackName}-statemachine-policy
