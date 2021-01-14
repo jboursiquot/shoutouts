@@ -103,7 +103,7 @@ func TestHandler(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.scenario, func(t *testing.T) {
-			h := shoutouts.NewHandler(c.sqs, c.ddb)
+			h := shoutouts.NewHandler(c.sqs, c.ddb, nullLogger())
 			r, err := h.Handle(context.Background(), c.request)
 			assert.NoError(t, err)
 			if c.sqs.err == nil {

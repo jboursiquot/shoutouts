@@ -4,23 +4,24 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
 
 	"github.com/aws/aws-lambda-go/events"
+	"github.com/sirupsen/logrus"
 )
 
 // NewHandler initializes and returns a new Handler.
-func NewHandler(s SQSAPI, ddb DynamoDBQuerier) *Handler {
-	return &Handler{sqs: s, ddb: ddb}
+func NewHandler(s SQSAPI, ddb DynamoDBQuerier, logger *logrus.Logger) *Handler {
+	return &Handler{sqs: s, ddb: ddb, log: logger}
 }
 
 // Handler handles incoming shoutout requests.
 type Handler struct {
 	sqs SQSAPI
 	ddb DynamoDBQuerier
+	log *logrus.Logger
 }
 
 // Handle handles the shoutout request.
@@ -48,7 +49,7 @@ func (h *Handler) Handle(ctx context.Context, request *events.APIGatewayProxyReq
 
 	rsp, err := cmd.execute(ctx)
 	if err != nil {
-		log.Println(err)
+		h.log.Println(err)
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusInternalServerError,
 			Body:       err.Error(),
@@ -57,7 +58,7 @@ func (h *Handler) Handle(ctx context.Context, request *events.APIGatewayProxyReq
 
 	body, err := json.Marshal(rsp)
 	if err != nil {
-		log.Println(err)
+		h.log.Println(err)
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusInternalServerError,
 		}, nil

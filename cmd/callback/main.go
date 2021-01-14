@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"net/http"
+	"time"
 
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-xray-sdk-go/xray"
@@ -17,7 +19,8 @@ func init() {
 }
 
 func handler(ctx context.Context, shoutout *shoutouts.Shoutout) (*shoutouts.Shoutout, error) {
-	err := shoutouts.NewCallback().Call(ctx, shoutout)
+	client := &http.Client{Timeout: time.Second * 10}
+	err := shoutouts.NewCallback(client).Call(ctx, shoutout)
 	if err != nil {
 		xray.AddError(ctx, err)
 	}

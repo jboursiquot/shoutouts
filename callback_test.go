@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -33,7 +34,8 @@ func TestCallback(t *testing.T) {
 			}))
 			defer ts.Close()
 
-			cb := shoutouts.NewCallback()
+			client := &http.Client{Timeout: time.Second * 10}
+			cb := shoutouts.NewCallback(client)
 			s := shoutouts.New()
 			s.ResponseURL = ts.URL
 

@@ -17,7 +17,6 @@ clean:
 
 test:
 	go test -race -v ./...
-	# sam local invoke -e testdata/events/apigateway-shoutout.json -t deploy/sam.yaml ShoutoutHandlerFunction
 
 params:
 	aws cloudformation deploy \

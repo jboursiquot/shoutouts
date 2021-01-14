@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"net/url"
 	"regexp"
 )
@@ -36,8 +35,6 @@ func parseListCommand(ctx context.Context, params *url.Values) (*listCommand, er
 		return nil, errors.New("not a list command")
 	}
 
-	log.Printf("cmdSubmatches=%#v", cmdSubmatches)
-
 	rec := cmdSubmatches[0][2]
 	recRe, err := regexp.Compile("@([a-zA-Z0-9]*)")
 	if err != nil {
@@ -58,8 +55,6 @@ func (c *listCommand) execute(ctx context.Context) (*SlackResponse, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to query: %s", err)
 	}
-
-	log.Printf("%#v", list)
 
 	var attachments []*SlackAttachment
 	for _, s := range list {

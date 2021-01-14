@@ -6,16 +6,21 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"time"
 )
 
 // NewCallback returns a new Callback.
-func NewCallback() *Callback {
-	return &Callback{}
+func NewCallback(httpClient doer) *Callback {
+	return &Callback{httpClient: httpClient}
+}
+
+type doer interface {
+	Do(req *http.Request) (*http.Response, error)
 }
 
 // Callback calls back Slack to relay a response to the user that requested the shoutout.
-type Callback struct{}
+type Callback struct {
+	httpClient doer
+}
 
 // Call performs the HTTP POST operation to Slack using the callback URL attached to the Shoutout.
 func (c *Callback) Call(ctx context.Context, shoutout *Shoutout) error {
@@ -35,7 +40,6 @@ func (c *Callback) Call(ctx context.Context, shoutout *Shoutout) error {
 		},
 	}
 
-	client := &http.Client{Timeout: time.Second * 10}
 	url := shoutout.ResponseURL
 
 	b, err := json.Marshal(r)
@@ -46,7 +50,7 @@ func (c *Callback) Call(ctx context.Context, shoutout *Shoutout) error {
 	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(b))
 	req.Header.Set("Content-Type", "application/json")
 
-	res, err := client.Do(req)
+	res, err := c.httpClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("failed to POST to response URL: %s", err)
 	}
