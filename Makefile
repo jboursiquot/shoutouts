@@ -44,8 +44,10 @@ zip:
 	@cd ./build && zip metrics.zip metrics
 	@cd ./build && zip callback.zip callback
 
-package: test build zip
+validate:
 	sam validate --template $(CF_TEMPLATE)
+
+package: test build validate zip
 	sam package \
 		--debug \
 		--template-file $(CF_TEMPLATE) \
