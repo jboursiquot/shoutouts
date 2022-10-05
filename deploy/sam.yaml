@@ -1,4 +1,4 @@
-AWSTemplateFormatVersion: '2010-09-09'
+AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
 Description: Shoutouts Slack Slash Command
 
@@ -19,24 +19,19 @@ Resources:
       TableName: !Sub ${AWS::StackName}-shoutouts
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
-        - 
-          AttributeName: ID
+        - AttributeName: ID
           AttributeType: S
-        -
-          AttributeName: RecipientID
+        - AttributeName: RecipientID
           AttributeType: S
       KeySchema:
-        - 
-          AttributeName: ID
+        - AttributeName: ID
           KeyType: HASH
       GlobalSecondaryIndexes:
-        - 
-          IndexName: RecipientIDIndex
-          KeySchema: 
-            - 
-              AttributeName: RecipientID
+        - IndexName: RecipientIDIndex
+          KeySchema:
+            - AttributeName: RecipientID
               KeyType: HASH
-          Projection: 
+          Projection:
             ProjectionType: ALL
 
   ShoutoutsQueue:
@@ -57,10 +52,10 @@ Resources:
     Properties:
       AssumeRolePolicyDocument:
         Statement:
-        - Effect: Allow
-          Principal:
-            Service: [lambda.amazonaws.com]
-          Action: ['sts:AssumeRole']
+          - Effect: Allow
+            Principal:
+              Service: [lambda.amazonaws.com]
+            Action: ["sts:AssumeRole"]
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AWSLambdaExecute
         - arn:aws:iam::aws:policy/AWSXrayWriteOnlyAccess
@@ -69,33 +64,41 @@ Resources:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaRole
         - arn:aws:iam::aws:policy/service-role/AWSLambdaSQSQueueExecutionRole
       Policies:
-      - PolicyName: !Sub ${AWS::StackName}-policy
-        PolicyDocument:
-          Statement:
-            - Effect: "Allow"
-              Action: 
-                - "states:StartExecution"
-                - "cloudwatch:PutMetricData"
-              Resource: "*"
-            - Effect: "Allow"
-              Action:
-                - "sqs:DeleteMessage"
-                - "sqs:DeleteMessageBatch"
-                - "sqs:SendMessageBatch"
-                - "sqs:SendMessage"
-              Resource: !GetAtt ShoutoutsQueue.Arn
-            - Effect: "Allow"
-              Action:
-                - "dynamodb:Query"
-                - "dynamodb:Scan"
-                - "dynamodb:BatchGetItem"
-                - "dynamodb:BatchWriteItem"
-                - "dynamodb:GetItem"
-                - "dynamodb:PutItem"
-                - "dynamodb:UpdateItem"
-              Resource:
-                - !GetAtt ShoutoutsTable.Arn
-                - !Join [ "/", [!GetAtt ShoutoutsTable.Arn, "index", "*" ]]
+        - PolicyName: !Sub ${AWS::StackName}-policy
+          PolicyDocument:
+            Statement:
+              - Effect: "Allow"
+                Action:
+                  - "states:StartExecution"
+                  - "cloudwatch:PutMetricData"
+                Resource: "*"
+              - Effect: "Allow"
+                Action:
+                  - "sqs:DeleteMessage"
+                  - "sqs:DeleteMessageBatch"
+                  - "sqs:SendMessageBatch"
+                  - "sqs:SendMessage"
+                Resource: !GetAtt ShoutoutsQueue.Arn
+              - Effect: "Allow"
+                Action:
+                  - "dynamodb:Query"
+                  - "dynamodb:Scan"
+                  - "dynamodb:BatchGetItem"
+                  - "dynamodb:BatchWriteItem"
+                  - "dynamodb:GetItem"
+                  - "dynamodb:PutItem"
+                  - "dynamodb:UpdateItem"
+                Resource:
+                  - !GetAtt ShoutoutsTable.Arn
+                  - !Join ["/", [!GetAtt ShoutoutsTable.Arn, "index", "*"]]
+              - Effect: Allow
+                Action:
+                  - ec2:DescribeNetworkInterfaces
+                  - ec2:CreateNetworkInterface
+                  - ec2:DeleteNetworkInterface
+                  - ec2:DescribeInstances
+                  - ec2:AttachNetworkInterface
+                Resource: "*"
 
   ShoutoutHandlerFunction:
     Type: AWS::Serverless::Function
@@ -115,9 +118,9 @@ Resources:
             Method: POST
       Environment:
         Variables:
-          SLACK_TOKEN: !Sub 
-            - '{{resolve:secretsmanager:/${paramsStackName}/slack-token}}'
-            - {paramsStackName: !Ref paramsStackName}
+          SLACK_TOKEN: !Sub
+            - "{{resolve:secretsmanager:/${paramsStackName}/slack-token}}"
+            - { paramsStackName: !Ref paramsStackName }
           QUEUE_URL: !GetAtt ShoutoutsQueueUrlParameter.Value
           TABLE_NAME: !Ref ShoutoutsTable
 
@@ -167,7 +170,7 @@ Resources:
       MemorySize: 128
       Environment:
         Variables:
-          METRIC_NAMESPACE: !Sub '{{resolve:ssm:/${paramsStackName}/metric-namespace:1}}'
+          METRIC_NAMESPACE: !Sub "{{resolve:ssm:/${paramsStackName}/metric-namespace:1}}"
 
   ShoutoutCallback:
     Type: AWS::Serverless::Function
@@ -187,8 +190,7 @@ Resources:
       StateMachineName: !Sub ${AWS::StackName}-processor
       TracingConfiguration:
         Enabled: true
-      DefinitionString: !Sub
-        |-
+      DefinitionString: !Sub |-
         {
           "Comment": "Processes an incoming payload from the Shoutouts Slack Slash command.",
           "StartAt": "save",
@@ -222,17 +224,17 @@ Resources:
     Properties:
       AssumeRolePolicyDocument:
         Statement:
-        - Effect: Allow
-          Principal:
-            Service: [states.amazonaws.com]
-          Action: ['sts:AssumeRole']
-      Policies:
-      - PolicyName: !Sub ${AWS::StackName}-statemachine-policy
-        PolicyDocument:
-          Statement:
           - Effect: Allow
-            Action: ['lambda:InvokeFunction']
-            Resource: '*' 
+            Principal:
+              Service: [states.amazonaws.com]
+            Action: ["sts:AssumeRole"]
+      Policies:
+        - PolicyName: !Sub ${AWS::StackName}-statemachine-policy
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action: ["lambda:InvokeFunction"]
+                Resource: "*"
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AWSXrayWriteOnlyAccess
 
@@ -240,3 +242,15 @@ Outputs:
   ShoutoutsAPIEndpoint:
     Description: "API Gateway endpoint URL for Shoutouts service"
     Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/shoutout/"
+  ShoutoutsRole:
+    Value: !GetAtt ShoutoutsRole.Arn
+    Export:
+      Name: shoutouts-lambda-role
+  ShoutoutsQueueURL:
+    Value: !GetAtt ShoutoutsQueueUrlParameter.Value
+    Export:
+      Name: shoutouts-queue-url
+  ShoutoutsTableName:
+    Value: !Ref ShoutoutsTable
+    Export:
+      Name: shoutouts-table-name

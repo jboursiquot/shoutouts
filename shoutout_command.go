@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
 	"net/url"
 	"os"
 	"regexp"
@@ -68,6 +70,36 @@ func parseShoutoutCommand(ctx context.Context, params *url.Values) (*shoutoutCom
 	c := shoutoutCommand{shoutout: s}
 
 	return &c, nil
+}
+
+func (c *shoutoutCommand) sanitize(ctx context.Context, sanitizerEndpoint string, httpClient *http.Client) error {
+	if _, err := url.Parse(sanitizerEndpoint); err != nil {
+		return err
+	}
+
+	body := strings.NewReader(c.shoutout.Comment)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, sanitizerEndpoint, body)
+	if err != nil {
+		return err
+	}
+
+	res, err := httpClient.Do(req)
+	if err != nil {
+		return err
+	}
+
+	if res.StatusCode != http.StatusOK {
+		return fmt.Errorf("sanitizer service returned status code %d", res.StatusCode)
+	}
+
+	bs, err := io.ReadAll(res.Body)
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+
+	c.shoutout.Comment = string(bs)
+	return nil
 }
 
 func (c *shoutoutCommand) execute(ctx context.Context) (*SlackResponse, error) {

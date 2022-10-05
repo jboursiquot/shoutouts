@@ -4,12 +4,15 @@ go 1.16
 
 require (
 	github.com/DATA-DOG/go-sqlmock v1.5.0 // indirect
-	github.com/aws/aws-lambda-go v1.27.0
+	github.com/TwiN/go-away v1.6.8
+	github.com/aws/aws-lambda-go v1.34.1
 	github.com/aws/aws-sdk-go v1.42.19
 	github.com/aws/aws-xray-sdk-go v1.6.0
 	github.com/go-kit/kit v0.12.0
+	github.com/gorilla/mux v1.8.0
+	github.com/joeshaw/envdecode v0.0.0-20200121155833-099f1fc765bd
 	github.com/satori/go.uuid v1.2.0
 	github.com/sirupsen/logrus v1.8.1
-	github.com/stretchr/testify v1.7.0
+	github.com/stretchr/testify v1.7.2
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 )

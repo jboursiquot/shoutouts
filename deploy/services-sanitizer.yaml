@@ -1,0 +1,101 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+
+Parameters:
+  paramsStackName:
+    Type: String
+    Description: "Stack name where SSM/SecretsManager params are defined"
+    Default: shoutouts-params
+  imageAndTag:
+    Type: String
+    Default: shoutouts/sanitizer:XXXX
+    Description: Container image and tag (image:tag).
+
+Resources:
+  TaskDefinitionSanitizer:
+    Type: AWS::ECS::TaskDefinition
+    DeletionPolicy: Retain
+    Properties:
+      Family: sanitizer
+      Cpu: .25 vCPU
+      Memory: .5 GB
+      NetworkMode: awsvpc
+      RequiresCompatibilities: [FARGATE]
+      ExecutionRoleArn: !ImportValue shoutout-services-task-execution-role
+      TaskRoleArn: !ImportValue shoutout-services-task-iam-role
+      ContainerDefinitions:
+        - Name: sanitizer
+          Image:
+            !Join [
+              "",
+              [
+                !Ref "AWS::AccountId",
+                ".dkr.ecr.",
+                !Ref "AWS::Region",
+                ".amazonaws.com/",
+                !Ref imageAndTag,
+              ],
+            ]
+          Essential: true
+          ReadonlyRootFilesystem: true
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !ImportValue shoutout-services-log-group-sanitizer
+              awslogs-region: !Ref "AWS::Region"
+              awslogs-stream-prefix: sanitizer
+          PortMappings:
+            - ContainerPort: 8080
+              Protocol: tcp
+          Environment:
+            - Name: ADDR
+              Value: ":8080"
+
+  ServiceSanitizer:
+    Type: AWS::ECS::Service
+    Properties:
+      LaunchType: FARGATE
+      PlatformVersion: LATEST
+      Cluster: !ImportValue shoutout-services-cluster
+      TaskDefinition: !Ref TaskDefinitionSanitizer
+      DesiredCount: 1
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          Subnets:
+            - !ImportValue shoutout-services-subnet-private
+      DeploymentConfiguration:
+        MinimumHealthyPercent: 0
+      LoadBalancers:
+        - ContainerName: sanitizer
+          ContainerPort: 8080
+          TargetGroupArn: !ImportValue shoutout-services-target-group-sanitizer
+      ServiceRegistries:
+        - RegistryArn: !ImportValue shoutout-services-service-discovery-service-sanitizer
+
+  ShoutoutSanitizingHandlerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Role: !ImportValue shoutouts-lambda-role
+      CodeUri: ../build/sanitizing-handler.zip
+      Handler: sanitizing-handler
+      Runtime: go1.x
+      Tracing: Active
+      MemorySize: 128
+      VpcConfig:
+        SecurityGroupIds:
+          - !ImportValue shoutout-services-vpc-default-security-group
+        SubnetIds:
+          - !ImportValue shoutout-services-subnet-private
+      FunctionUrlConfig:
+        AuthType: NONE
+      Environment:
+        Variables:
+          SLACK_TOKEN: !Sub
+            - "{{resolve:secretsmanager:/${paramsStackName}/slack-token}}"
+            - { paramsStackName: !Ref paramsStackName }
+          QUEUE_URL: !ImportValue shoutouts-queue-url
+          TABLE_NAME: !ImportValue shoutouts-table-name
+
+Outputs:
+  ShoutoutSanitizingHandlerFunctionURL:
+    Value: !GetAtt ShoutoutSanitizingHandlerFunctionUrl.FunctionUrl
