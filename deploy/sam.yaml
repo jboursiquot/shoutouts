@@ -191,17 +191,11 @@ Resources:
         |-
         {
           "Comment": "Processes an incoming payload from the Shoutouts Slack Slash command.",
-          "StartAt": "save",
+          "StartAt": "metrics",
           "Version": "1.0",
           "TimeoutSeconds": 90,
           "States":
           {
-            "save": {
-              "Type": "Task",
-              "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${ShoutoutSaverFunction}",
-              "TimeoutSeconds": 30,
-              "Next": "metrics"
-            },
             "metrics": {
               "Type": "Task",
               "TimeoutSeconds": 30,
