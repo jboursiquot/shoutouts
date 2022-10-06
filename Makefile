@@ -49,7 +49,6 @@ validate:
 
 package: test build validate zip
 	sam package \
-		--debug \
 		--template-file $(CF_TEMPLATE) \
 		--output-template-file $(PACKAGE_TEMPLATE) \
 		--s3-bucket $(BUCKET)
