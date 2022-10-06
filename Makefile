@@ -66,6 +66,8 @@ deploy: clean package
 destroy:
 	aws cloudformation delete-stack \
 		--stack-name $(STACK_NAME)
+	aws cloudformation wait stack-delete-complete \
+		--stack-name $(STACK_NAME)
 	aws cloudformation delete-stack \
 		--stack-name $(STACK_NAME_PARAMS)
 	aws s3 rb s3://$(BUCKET) --force  
