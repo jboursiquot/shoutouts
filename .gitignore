@@ -5,3 +5,4 @@ vendor
 pkg/shoutouts/commands
 .vscode
 pkg/shoutouts/retrieve*
+deploy/services-sanitizer-package.yaml
