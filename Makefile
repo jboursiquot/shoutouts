@@ -12,6 +12,8 @@ AWS_REGION ?= $(shell aws configure get region)
 ECR_REGISTRY ?= $(AWS_ACCOUNT_ID).dkr.ecr.$(AWS_REGION).amazonaws.com
 
 .PHONY: clean test build package deploy slack
+.PHONY: ecr-login build-and-push-sanitizer-image build-and-package-sanitizing-handler
+.PHONY: deploy-services-base destroy-services-base deploy-sanitizer destroy-sanitizer
 
 default: test
 
@@ -40,6 +42,7 @@ build:
 	GOOS=linux GOARCH=amd64 go build -v -o ./build/saver ./cmd/saver
 	GOOS=linux GOARCH=amd64 go build -v -o ./build/metrics ./cmd/metrics
 	GOOS=linux GOARCH=amd64 go build -v -o ./build/callback ./cmd/callback
+	GOOS=linux GOARCH=amd64 go build -v -o ./build/sanitizing-handler ./cmd/sanitizing-handler
 
 zip:
 	@cd ./build && zip handler.zip handler
@@ -47,6 +50,7 @@ zip:
 	@cd ./build && zip saver.zip saver
 	@cd ./build && zip metrics.zip metrics
 	@cd ./build && zip callback.zip callback
+	@cd ./build && zip sanitizing-handler.zip sanitizing-handler
 
 validate:
 	sam validate --template $(CF_TEMPLATE)
@@ -102,7 +106,7 @@ ecr-login:
 	aws ecr get-login-password --region $(AWS_REGION) | docker login --username AWS --password-stdin $(AWS_ACCOUNT_ID).dkr.ecr.$(AWS_REGION).amazonaws.com
 
 ECR_REPO_SANITIZER ?= $(PROJECT)/sanitizer
-build-and-push-sanitizer-image:
+build-and-push-sanitizer-image: ecr-login
 	GOOS=linux GOARCH=amd64 go build -v -o ./build/sanitizer ./cmd/sanitizer
 	docker build -t $(ECR_REPO_SANITIZER):$(REVISION) -f Dockerfile-sanitizer .
 	docker tag $(ECR_REPO_SANITIZER):$(REVISION) $(ECR_REGISTRY)/$(ECR_REPO_SANITIZER):$(REVISION)
