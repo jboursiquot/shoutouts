@@ -9,7 +9,7 @@ require (
 	github.com/aws/aws-xray-sdk-go v1.6.0
 	github.com/go-kit/kit v0.12.0
 	github.com/satori/go.uuid v1.2.0
-	github.com/sirupsen/logrus v1.8.1
+	github.com/sirupsen/logrus v1.8.3
 	github.com/stretchr/testify v1.7.0
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 )
